@@ -141,7 +141,12 @@ input.trec-button {
 #yesButton {
 	background-color: #00af52;
 }
-
+#spinner {
+	display: none;
+	position: fixed;
+	width: 200px;
+	height: 200px;
+}
 @media screen 
 	and (min-device-width: 375px)
 	and (-webkit-min-device-pixel-ratio: 2)

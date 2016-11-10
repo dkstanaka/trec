@@ -70,6 +70,10 @@
 			</div>
 		</div>
 	</div>
+	<!-- spinner -->
+	<div id="spinner">
+		<img src="img/ajaxSpinner.gif">
+	</div>
 	<!-- Slide Menu -->
 	<div class="opt-panel" id="option-menu">
 	</div>
@@ -95,7 +99,9 @@
 		
 		if (appSpec.rgb2hex(bcol) == "#49a9d4") {
 			if (!conf.offline) {
+				startSpinner();
 				client.sendStatement(stmt, function(){
+					stopSpinner();
 					var params = appSpec.makeParamsForLogs(stmt);
 					appSpec.logs.unshift(params);
 					dumpLogs("#option-menu");
@@ -476,6 +482,17 @@
 		
 	}
 	
+	function startSpinner() {
+		$("#spinner").css({
+			top: $(window).height()/2 - $("#spinner").height()/2,
+			left: $("#arrived-at_home").offset().left
+		}).fadeIn();
+	}
+	
+	function stopSpinner() {
+		$("#spinner").fadeOut();
+	}
+	
 	$(document).ready(function(){
 		// oauth
 		if (ssto.get("trecaccess") == undefined || ssto.get("trecaccess").length <= 1) {
@@ -484,8 +501,10 @@
 				if (buf.code == undefined) {
 					client.startOAuth();
 				} else {
+					startSpinner();
 					client.setCode(buf.code);
 					client.requestToken(function(){
+						stopSpinner();
 						initButton();
 					});
 				}
@@ -500,10 +519,12 @@
 				var opt = {
 					limit: 0
 				};
+				startSpinner();
 				client.getStatements(aid, opt, function(d){
 					appSpec.pushTcsArray(d);
 					var aid = conf.actIdPrefix + "act/home";
 					client.getStatements(aid, opt, function(d){
+						stopSpinner();
 						appSpec.pushTcsArray(d, function(){
 							listTRecEvent();
 							redrawStickPerson();
