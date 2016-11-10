@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+	<head>
+		<meta charset="UTF-8">
+		<title>tRec</title>
+		<script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
+		<script type="text/javascript" src="js/tincan-min.js"></script>
+		<script type="text/javascript" src="js/jquery.storageapi.min.js"></script>
+		<script type="text/javascript" src="js/jquery.shadow.js"></script>
+		<script type="text/javascript" src="js/jquery.easing.1.3.js"></script>
+		<script type="text/javascript" src="js/sha256.min.js"></script>
+		<script type="text/javascript" src="js/heatmap.min.js"></script>
+		<script type="text/javascript" src="js/splustar-client.js"></script>
+		<script type="text/javascript" src="js/splustar-appspec.js"></script>
+		<script type="text/javascript" src="js/splustar-conf.js"></script>
+		<script type="text/javascript" src="js/splustar-oaclient.js"></script>
+		<script type="text/javascript" src="https://www.youtube.com/iframe_api"></script>
+		<link rel="stylesheet" type="text/css" href="style/jquery.shadow.css">
+		<link rel="stylesheet" type="text/css" href="style/splustar-trec.css">
+	</head>
+	<body>
+	<div class="navigation-bar">
+		<p>tRec</p>
+		<div id="icon-menu">
+			<img src="img/icon-menu.png">
+		</div>
+	</div>
+	<p></p>
+	<div class="trec-row">
+		<div class="trec-col3 edge">&nbsp;</div>
+		<div class="trec-col3">
+			<input type="button" class="trec-button" value="外出" id="left_home" onClick="onButtonClick(this);"/>
+		</div>
+		<div class="trec-col3 edge">&nbsp;</div>
+	</div>
+	<div class="trec-row clear">
+		<div class="trec-col3 edge">&nbsp;</div>
+		<div class="trec-col3">
+			<input type="button" class="trec-button" value="出社" id="arrived-at_office" onClick="onButtonClick(this);"/>
+		</div>
+		<div class="trec-col3 edge">&nbsp;</div>
+	</div>
+	<div class="trec-row clear">
+		<div class="trec-col3 edge">&nbsp;</div>
+		<div class="trec-col3">
+			<input type="button" class="trec-button" value="退社" id="left_office" onClick="onButtonClick(this);"/>
+		</div>
+		<div class="trec-col3 edge">&nbsp;</div>
+	</div>
+	<div class="trec-row clear">
+		<div class="trec-col3 edge">&nbsp;</div>
+		<div class="trec-col3">
+			<input type="button" class="trec-button" value="帰宅" id="arrived-at_home" onClick="onButtonClick(this);"/>
+		</div>
+		<div class="trec-col3 edge">&nbsp;</div>
+	</div>
+	<div id="graphics">
+		<div id="stick-person">
+		</div>
+	</div>
+	<!-- balloon -->
+	<div id="balloon"></div>
+	<!-- Yes/No Dialog -->
+	<div class="opt-panel" id="modal">
+		<div class="dialog" id="dialog">
+			<p>キャンセルしますか？</p>
+			<div class="yesNo">
+				<input type="button" value="No" id="noButton" onClick="yesNoEvent(this)">
+				<input type="button" value="Yes" id="yesButton" onClick="yesNoEvent(this)">
+			</div>
+		</div>
+	</div>
+	<!-- Slide Menu -->
+	<div class="opt-panel" id="option-menu">
+	</div>
+	<script type="text/javascript">
+	// config
+	var conf = trecConfLib.getConf();
+	
+	var ssto = $.sessionStorage,
+			lsto = $.localStorage,
+			myLoc = {},
+			acquiredStmt;
+	// deine global object
+	var client = new Client(conf);
+	var appSpec = new AppSpec();
+	/*
+	 * event handler
+	 *
+	 */
+	function onButtonClick(t) {
+		var tcParts = trackingActivity(t);
+		var stmt = makeTCSObject(tcParts);
+		var bcol = $(t).css('background-color');
+		
+		if (appSpec.rgb2hex(bcol) == "#49a9d4") {
+			if (!conf.offline) {
+				client.sendStatement(stmt, function(){
+					var params = appSpec.makeParamsForLogs(stmt);
+					appSpec.logs.unshift(params);
+					dumpLogs("#option-menu");
+					
+					buttonBlueAll();
+					buttonGreen(t);
+				});
+			}
+		} else {
+			// Mananda LRSがvoided未対応のためダイアログを表示するのみ
+			$("#dialog").hide();
+			$("#modal").fadeIn("first", function(){
+				var left = $(window).width()/2 - $("#dialog").width()/2;
+				$("#dialog").css({
+													left: left,
+													top: "20%"
+												}).fadeIn();
+				
+			});
+		}
+	}
+	
+	function yesNoEvent(obj) {
+		var yn = $(obj).val();
+		$("#modal").fadeOut("first", function(){
+			if (yn == "Yes")
+				buttonBlueAll();
+			else if (yn == "No") {
+				// do something you need
+			}
+		});
+	}
+	/*
+	 * img control
+	 *
+	 */
+	function getStickPersonImg() {
+		var imgSrc = 'icon-default.png';
+		if (appSpec.logs.length > 0) {
+			var verbStr = appSpec.logs[0].verbDispEn.replace(" ", "-");
+			imgSrc = "icon-" + verbStr + "_" + appSpec.logs[0].objectNameEn + ".png";
+		}
+		return '<img src="img/' + imgSrc 
+					+ '" width="' + $("#stick-person").height() 
+					+ 'px" height="' + $("#stick-person").height() + 'px">';
+	}
+	/*
+	 * button control
+	 *
+	 */
+	function buttonBlueAll() {
+		$(".trec-button").each(function(){
+			$(this).css({
+				backgroundColor: "#49a9d4",
+				border: "1px solid #49a9d4"
+			});
+			
+			var s = $(this).val();
+			$(this).val(s.substr(0, 2));
+		});
+	}
+	
+	function buttonGreen(t) {
+		$(t).css({
+			backgroundColor: "#49d4a9",
+			border: "1px solid #49d4a9"
+		});
+		
+		var s = $(t).val();
+		$(t).val(s + "中");
+		redrawStickPerson();
+		
+		var ballHtml = "";
+		if (appSpec.logs.length == 1) {
+			ballHtml = appSpec.getActivityText(appSpec.logs[0]);
+		} else if (appSpec.logs.length > 1) {
+			var a1 = appSpec.logs[0],
+					a2 = appSpec.logs[1];
+			
+			var t1 = client.getUnixTimestamp(a1.timestamp),
+					t2 = client.getUnixTimestamp(a2.timestamp);
+			var diff = appSpec.intToTime(t1 - t2);
+			
+			ballHtml = appSpec.getActivityText(a2) + "<br/>" 
+										+ "<b>" + appSpec.getActivityText(a1) + "</b><br/>"
+										+ "経過時間&nbsp;" + diff;
+		} else {
+			ballHtml = "・・・";
+		}
+		
+		$("#balloon").html(ballHtml);
+	}
+	
+	function redrawStickPerson() {
+		
+		$("#stick-person > img")
+			.remove();
+		$("#stick-person")
+			.append(getStickPersonImg());
+			
+		displayStickPerson();
+	}
+	
+	function listTRecEvent() {
+		
+		var ta = appSpec.tcsArray;
+		for (var i = 0; i < ta.length; i++) {
+			var params = appSpec.makeParamsForLogs(ta[i]);
+			appSpec.logs.push(params);
+		}
+		if (appSpec.logs.length > 0) {
+			appSpec.logs.sort(appSpec.sortJsonBy("unixtime", true));
+			var latestLog = appSpec.logs[0];
+			var btnId = "#" + latestLog.verbDispEn + "_" + latestLog.objectNameEn;
+			btnId = btnId.replace(" ", "-");
+			buttonGreen($(btnId));
+			dumpLogs("#option-menu");
+		}
+	}
+	
+	function dumpLogs(sel) {
+		var logLen = appSpec.logs.length;
+		$(sel).html('<div id="hist-header clear">履歴</div>');
+		for (var i = 0; i < logLen; i++) {
+			var itemHtml = '<div class="hist-item clear">' + appSpec.appendLog(appSpec.logs[i]);
+			if (i < logLen-1) {
+				var diffTime = appSpec.logs[i].unixtime - appSpec.logs[i+1].unixtime;
+				itemHtml = itemHtml + "<br/>経過時間&nbsp;" + appSpec.intToTime(diffTime);
+			}
+			itemHtml = itemHtml + "</div>";
+			$(sel).append(itemHtml);
+		}
+	}
+	/*
+	 * generate statement
+	 *
+	 */
+	function makeTCSObject(trecObj) {
+	
+		var actor = new TinCan.Agent();
+		actor = {
+				name: "dummy, change later",
+				mbox: "mailto:dummy@change.later.jp"
+		};
+		
+		var verb = new TinCan.Verb(),
+				activity = new TinCan.Activity(),
+				activityDefinition = new TinCan.ActivityDefinition(),
+				context = new TinCan.Context(),
+				contextActivities = new TinCan.ContextActivities(),
+				statement = new TinCan.Statement();
+				
+		verb.id = trecObj.verb.id;
+		verb.display = trecObj.verb.display;
+		
+		activity.id = trecObj.object.id;
+		activityDefinition.type = conf.my_scheme + "acttype/location";
+		activityDefinition.name = trecObj.object.definition.name;
+		activity.definition = activityDefinition;
+		
+		context.extensions = trecObj.context.extensions;
+		
+		statement.actor = actor;
+		statement.verb = verb;
+		statement.object = activity;
+		statement.context = context;
+		
+		var tincan = new TinCan();
+		var stmt = tincan.prepareStatement(statement);
+		
+		// ステートメントの掃除
+		var stmtStr = JSON.stringify(stmt, function(k,v){
+			if (v == null)
+				return undefined;
+			else if (k == "raw" || k == "min" || k == "max")
+				return Number(v);
+			else if (k == "target" || k == "degraded")
+				return undefined;
+			else
+				return v;
+		});
+		
+		return JSON.parse(stmtStr);
+	}
+	
+	function trackingActivity(o) {
+		var idBuf = o.id.split("_");
+		return {
+			verb: makeVerb(idBuf[0]),
+			object: makeObject(idBuf),
+			context: makeContextExt(idBuf[0])
+		}
+	}
+	
+	function makeObject(a) {
+		var v = a[0], o = a[1];
+		var objId = conf.actIdPrefix + "act/" + o;
+		
+		switch(o) {
+			case "home":
+				var ro = {
+						id: objId,
+						definition: {
+							name: {
+								"ja-JP": "自宅",
+								"en-US": o
+							}
+						}
+				};
+				return ro;
+				break;
+			case "office":
+				var ro = {
+						id: objId,
+						definition: {
+							name: {
+								"ja-JP": "会社",
+								"en-US": o
+							}
+						}
+				};
+				return ro;
+				break;
+			default:
+				return;
+		}
+	}
+	
+	function getGeolocation() {
+		var r = {
+			longitude: null,
+			latitude: null,
+			accuracy: null,
+			status: 0
+		};
+		// geolocation
+		if (navigator.geolocation) {
+			console.log("geolocation is supported");
+			navigator.geolocation.getCurrentPosition(successFunc, errorFunc);
+		} else {
+			console.log("geolocation is NOT supported");
+		}
+		return r;
+		// local functions
+		function successFunc(pos) {
+			console.log(pos);
+			r = {
+				longitude: pos.coords.longitude,
+				latitude: pos.coords.latitude,
+				accuracy: pos.coords.accuracy,
+				status: "success"
+			};
+		}
+		function errorFunc(err) {
+			console.log(err);
+			var errorMessage = {
+				0: "原因不明のエラーが発生しました。",
+				1: "位置情報の取得が許可されませんでした。",
+				2: "位置情報が取得できませんでした。" ,
+				3: "タイムアウトしました。"
+			};
+			r = {
+				status: "fail",
+				message: errorMessage[err.code]
+			};
+		}
+	}
+	
+	function makeContextExt(word) {
+		var key = conf.my_scheme + "ext/practice",
+				ev = {};
+		/*
+		var keyLongitude = conf.my_scheme + "ext/longitude",
+				keyLatitude = conf.my_scheme + "ext/latitude",
+				keyAccuracy = conf.my_scheme + "ext/accuracy";
+				
+		myLoc = getGeolocation();
+		console.log(myLoc);
+		
+		ev[keyLongitude] = myLoc.longitude;
+		ev[keyLatitude] = myLoc.latitude;
+		ev[keyAccuracy] = myLoc.accuracy;
+		*/
+		switch(word) {
+			case "arrived-at":
+				ev[key] = "に";
+				return {
+					extensions: ev
+				}
+				break;
+			case "left":
+				ev[key] = "を";
+				return {
+					extensions: ev
+				}
+				break;
+			case "began":
+				ev[key] = "を";
+				return {
+					extensions: ev
+				}
+				break;
+			case "ended":
+				ev[key] = "を";
+				return {
+					extensions: ev
+				}
+				break;
+			default:
+				return;
+		}
+	}
+	
+	function makeVerb(word) {
+		switch(word) {
+			case "arrived-at":
+				return {
+					id: "http://splustar.com/xapi/verb/arrived-at",
+					display: {
+						"en-US": "arrived at",
+						"ja-JP": "到着した"
+					}
+				}
+				break;
+			case "left":
+				return {
+					id: "http://splustar.com/xapi/verb/left",
+					display: {
+						"en-US": "left",
+						"ja-JP": "出発した"
+					}
+				}
+				break;
+			case "began":
+				return {
+					id: "http://splustar.com/xapi/verb/began",
+					display: {
+						"en-US": "began",
+						"ja-JP": "開始した"
+					}
+				}
+				break;
+			case "ended":
+				return {
+					id: "http://splustar.com/xapi/verb/ended",
+					display: {
+						"en-US": "ended",
+						"ja-JP": "終了した"
+					}
+				}
+				break;
+			default:
+				return;
+		}
+	}
+	
+	function displayStickPerson() {
+		
+		var pw =$("#stick-person").height();
+		$("#stick-person").css({
+			top: $("#graphics").height()/2 - pw/2,
+			left: function(){
+				return $("#arrived-at_home").offset().left;
+			},
+			width: pw
+		});
+		
+		$("#balloon").css({
+			top: function(){
+				var obj = $("#stick-person");
+				return $("#stick-person").offset().top - obj.height() * 0.16;
+			},
+			left: function(){
+				var obj = $("#stick-person");
+				return obj.offset().left + obj.width() * 0.8;
+			}
+		}).fadeIn();
+		
+	}
+	
+	$(document).ready(function(){
+		// oauth
+		if (ssto.get("trecaccess") == undefined || ssto.get("trecaccess").length <= 1) {
+			if (!conf.offline) {
+				buf = client.checkCode();
+				if (buf.code == undefined) {
+					client.startOAuth();
+				} else {
+					client.setCode(buf.code);
+					client.requestToken(function(){
+						initButton();
+					});
+				}
+			}
+		} else {
+			initButton();
+		}
+		// initialize screen
+		function initButton() {
+			if (!conf.offline) {
+				var aid = conf.actIdPrefix + "act/office";
+				var opt = {
+					limit: 0
+				};
+				client.getStatements(aid, opt, function(d){
+					appSpec.pushTcsArray(d);
+					var aid = conf.actIdPrefix + "act/home";
+					client.getStatements(aid, opt, function(d){
+						appSpec.pushTcsArray(d, function(){
+							listTRecEvent();
+							redrawStickPerson();
+							if (appSpec.logs.length == 0) {
+								$("#balloon").text("・・・");
+							}
+						});
+					});
+				});
+			}
+		}
+		// menu panel control
+		$("#icon-menu").click(function(){
+			$("#option-menu").width(function(){
+				return $(window).width() - $("#icon-menu").width()*1.2 - 48;
+			});
+			$("#option-menu").animate({width: 'toggle'}, 300, function(){
+				
+			});
+		});
+		
+		var bo = $("#arrived-at_home").offset(),
+				bh = $("#arrived-at_home").height(),
+				wh = $(window).height();
+				
+		$("#graphics").height(wh - bo.top - bh - bh*.8);
+		
+	});
+	</script>
+	</body>
+</html>

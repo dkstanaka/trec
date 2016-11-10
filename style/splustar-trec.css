@@ -1,0 +1,217 @@
+div {
+	display: block;
+	position: relative;
+}
+.navigation-bar {
+	margin: 0;
+	padding: 4px 0 4px 0;
+	width: 100%;
+	background-color: #bcbcbc;
+	border: 2px solid #6a6a6a;
+}
+.navigation-bar > p {
+	margin: 0;
+	text-align: center;
+	line-height: 48px;
+	font-size: 24px;
+	font-weight: bold;
+}
+#icon-menu {
+	position: absolute;
+	top: 4px;
+	right: 0px;
+	width: 48px;
+	background-color: #fff;
+}
+#icon-menu > img {
+	height: 48px;
+	width: 48px;
+}
+.trec-row {
+	height: 118px;
+	width: 100%;
+}
+.trec-col3 {
+	float: left;
+	width: 33%;
+}
+input.trec-button {
+	height: 92px;
+	width: 100%;
+	/* arrange the button */
+	font-size: 28px;
+	font-weight: bold;
+	color: #eee;
+	background-color: #49a9d4;
+}
+.clear {
+	clear: left;
+}
+#graphics {
+	position: absolute;
+	width: 92%;
+	bottom: 0;
+	margin: 3%;
+	/*background-color: #49a9d4;*/
+	border-top: 2px solid #8f8f8f;
+}
+#stick-person {
+	position: absolute;
+	height: 70%;
+	border: 1px;
+}
+#balloon {
+	display: none;
+	position: absolute;
+	width:14em;
+	height: 3em;
+	padding: 1%;
+	font-size: 18px;
+	border: 4px solid #49d4a9;
+	background-color: #eaeaea;
+}
+.opt-panel {
+	display: none;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 96%;
+}
+#modal {
+	background-color: #2a2a2a;
+	opacity: 0.9;
+}
+#option-menu {
+	float: left;
+	padding: 14px;
+	overflow-y: scroll;
+	overflow-x: hidden;
+	background-color: #fff;
+	border: 2px solid #f0f0f0;
+}
+#hist-header {
+	position: relative;
+	width: 16em;
+	overflow: hidden;
+	font-size: 24px;
+	background-color: #f0f0f0;
+	border-top: 4px solid #aeaeae;
+	border-left: 4px solid #aeaeae;
+	border-right: 4px solid #aeaeae;
+}
+.hist-item {
+	width: 16em;
+	overflow: hidden;
+	font-size: 24px;
+	border: 2px solid #aeaeae;
+}
+.dialog {
+	width: 40%;
+	height: 30%;
+	border: 10px solid #0000e0;
+	background-color: #eee;
+	opacity: 1;
+}
+.dialog > p {
+	padding: 5%;
+	font-size: 28px;
+	font-weight: bold;
+}
+.yesNo {
+	position: absolute;
+	bottom: 4px;
+	height: 68px;
+	width: 92%;
+	border-top: 2px solid #aaa;
+	padding: 20px;
+	text-align: right;
+}
+.yesNo > input[type="button"] {
+	width: 108px;
+	height: 56px;
+	font-size: 24px;
+	font-weight: bold;
+	color: #fffdff;
+	margin-left: 20px;
+}
+#noButton {
+	background-color: #fe0002;
+}
+#yesButton {
+	background-color: #00af52;
+}
+
+@media screen 
+	and (min-device-width: 375px)
+	and (-webkit-min-device-pixel-ratio: 2)
+	and (orientation: portrait)
+{
+	.navigation-bar {
+		padding: 8px 0 8px 0;
+		width: 100%;
+	}
+	.navigation-bar > p {
+		line-height: 96px;
+		font-size: 48px;
+	}
+	#icon-menu {
+		top: 8px;
+		height: 96px;
+		width: 96px;
+	}
+	#icon-menu > img {
+		height: 96px;
+		width: 96px;
+	}
+	.trec-row {
+		height: 226px;
+	}
+	.trec-col3 {
+		width: 84%;
+	}
+	.trec-col3.edge {
+		width: 8%;
+	}
+	input.trec-button {
+		height: 184px;
+		/* arrange the button */
+		font-size: 56px;
+	}
+	#balloon {
+		width:15em;
+		height: 5em;
+		padding: 1%;
+		font-size: 32px;
+	}
+	#option-menu {
+		font-size: 48px;
+		padding: 28px;
+	}
+	#hist-header {
+		font-size: 48px;
+	}
+	.hist-item {
+		font-size: 48px;
+	}
+	.dialog {
+		width: 80%;
+		height: 30%;
+		border: 10px solid #0000e0;
+	}
+	.dialog > p {
+		font-size: 56px;
+	}
+	.yesNo {
+		bottom: 8px;
+		height: 136px;
+		border-top: 4px solid #aaa;
+		padding: 40px;
+	}
+	.yesNo > input[type="button"] {
+		width: 216px;
+		height: 112px;
+		font-size: 48px;
+		margin-left: 40px;
+	}
+}
