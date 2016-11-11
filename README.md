@@ -23,7 +23,8 @@ Mananda のサンプルとして作った簡単な打刻アプリケーション
 * my_scheme: verb, object, context の id プレフィックスに使用する文字列
 世界中で一意となるようにすること。通常は自身のドメイン名＋パス名  
 例 "http://example.jp/xapi/"  
-6. 楽しんでください
+
+
 ---
 #### 注記
 Safari では動きません
