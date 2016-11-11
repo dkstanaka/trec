@@ -1,5 +1,5 @@
 # tRec
-time recording application for mananda
+Mananda のサンプルとして作った簡単な打刻アプリケーション
 
 #### 使い方
 1. Mananda DeveloperサイトのMananda OAuth API Betaページを参考にアプリケーション登録を行う  
