@@ -24,6 +24,8 @@ Mananda のサンプルとして作った簡単な打刻アプリケーション
  世界中で一意となるようにすること。通常は自身のドメイン名＋パス名  
  例 "http://example.jp/xapi/"  
 
+#### デモ
+http://splustar.com/~ubuntu/taskapp/trec
 
 ---
 #### 注記
