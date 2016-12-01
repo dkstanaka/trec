@@ -1,5 +1,5 @@
 # tRecGeo
-Mananda のサンプルとして作った簡単な打刻アプリケーションのgeolocationサポート版。
+Mananda のサンプルとして作った簡単な打刻アプリケーションのgeolocationサポート版。  
 ※geolocationはSSL接続の場合のみ機能します。
 
 #### 使い方
