@@ -1,5 +1,6 @@
-# tRec
-Mananda のサンプルとして作った簡単な打刻アプリケーション
+# tRecGeo
+Mananda のサンプルとして作った簡単な打刻アプリケーションのgeolocationサポート版。
+※geolocationはSSL接続の場合のみ機能します。
 
 #### 使い方
 1. Mananda DeveloperサイトのMananda OAuth API Betaページを参考にアプリケーション登録を行う  
@@ -25,7 +26,7 @@ Mananda のサンプルとして作った簡単な打刻アプリケーション
  例 "http://example.jp/xapi/"  
 
 #### デモ
-http://splustar.com/~ubuntu/taskapp/trec
+https://splustar.com/taskapp/trec
 
 ---
 #### 注記
