@@ -6,7 +6,57 @@ function AppSpec() {
 	this.tcsArray = new Array();
 	this.logs = new Array();
 	this.allLogs = new Array();
+	this.location = {};
 };
+
+AppSpec.prototype.getLocationName = function (locObj, callback) {
+	var url = "https://maps.googleapis.com/maps/api/geocode/json",
+			apiKey = "AIzaSyASD638tVSbGy33U9gYdCSiac5kB_Lnl3o",
+			lat = locObj.latitude,
+			lon = locObj.longitude;
+	
+	var apiCall = url + "?latlng=" + lat + "," + lon + "&language=ja&key=" + apiKey;
+	
+	var request = $.ajax({
+		type: "get",
+		url: apiCall,
+		contentType: "application/json",
+	});
+	
+	request.done(function(d, textStatus, jqXHR){
+		console.log("status: " + textStatus);
+		if (typeof callback === 'function')
+			callback(d);
+	});
+	
+	request.fail(function(jqXHR, textStatus, e){
+		acquiredStmt = null;
+		this.responseHandler(jqXHR, textStatus);
+	});
+}
+
+AppSpec.prototype.setLocation = function (locObj, callback) {
+	if (locObj.status == "success") {
+		this.location = {
+			latitude: locObj.latitude,
+			longitude: locObj.longitude,
+			accuracy: locObj.accuracy
+		}
+	}
+	else if (locObj.status == "fail") {
+		this.location = {
+			status: locObj.status,
+			message: locObj.message
+		}
+	}
+	
+	if (typeof callback === "function")
+		callback(this.location);
+}
+
+AppSpec.prototype.getLocation = function () {
+	return this.location;
+}
 
 AppSpec.prototype.pushTcsArray = function (d, callback) {
 	var acquiredStmt = JSON.parse(JSON.stringify(d));
@@ -27,15 +77,27 @@ AppSpec.prototype.pushTcsArray = function (d, callback) {
 }
 
 AppSpec.prototype.makeParamsForLogs = function(s) {
-	var params = {
-		timestamp: s.timestamp,
-		practice: s.context.extensions['http://my.splustar.com/xapi/ext/practice'],
-		objectName: s.object.definition.name['ja-JP'],
-		objectNameEn: s.object.definition.name['en-US'],
-		verbDisp: s.verb.display['ja-JP'],
-		verbDispEn: s.verb.display['en-US'],
-		unixtime: client.getUnixTimestamp(s.timestamp)
-	};
+	if (s.context.extensions !== undefined) {
+		var params = {
+			timestamp: s.timestamp,
+			practice: s.context.extensions['http://my.splustar.com/xapi/ext/practice'],
+			objectName: s.object.definition.name['ja-JP'],
+			objectNameEn: s.object.definition.name['en-US'],
+			verbDisp: s.verb.display['ja-JP'],
+			verbDispEn: s.verb.display['en-US'],
+			unixtime: client.getUnixTimestamp(s.timestamp)
+		};
+	} else {
+		var params = {
+			timestamp: s.timestamp,
+			practice: "を",
+			objectName: s.object.definition.name['ja-JP'],
+			objectNameEn: s.object.definition.name['en-US'],
+			verbDisp: s.verb.display['ja-JP'],
+			verbDispEn: s.verb.display['en-US'],
+			unixtime: client.getUnixTimestamp(s.timestamp)
+		};
+	}
 	
 	return params;
 }

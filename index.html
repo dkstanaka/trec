@@ -91,21 +91,30 @@
 	 *
 	 */
 	function onButtonClick(t) {
-		var tcParts = trackingActivity(t);
-		var stmt = makeTCSObject(tcParts);
 		var bcol = $(t).css('background-color');
 		
 		if (appSpec.rgb2hex(bcol) == "#49a9d4") {
 			if (!conf.offline) {
-				startSpinner();
-				client.sendStatement(stmt, function(){
-					stopSpinner();
-					var params = appSpec.makeParamsForLogs(stmt);
-					appSpec.logs.unshift(params);
-					dumpLogs("#option-menu");
-					
-					buttonBlueAll();
-					buttonGreen(t);
+				
+				getGeolocation(function(d){
+				
+					var tcParts = trackingActivity(t, d);
+					var stmt = makeTCSObject(tcParts);
+					/*
+					appSpec.getLocationName(appSpec.getLocation(), function(d){
+						console.log(d);
+					});
+					*/
+					startSpinner();
+					client.sendStatement(stmt, function(){
+						stopSpinner();
+						var params = appSpec.makeParamsForLogs(stmt);
+						appSpec.logs.unshift(params);
+						dumpLogs("#option-menu");
+						
+						buttonBlueAll();
+						buttonGreen(t);
+					});
 				});
 			}
 		} else {
@@ -125,8 +134,9 @@
 	function yesNoEvent(obj) {
 		var yn = $(obj).val();
 		$("#modal").fadeOut("first", function(){
-			if (yn == "Yes")
-				buttonBlueAll();
+			if (yn == "Yes") {
+				// buttonBlueAll();
+			}
 			else if (yn == "No") {
 				// do something you need
 			}
@@ -182,6 +192,7 @@
 			var t1 = client.getUnixTimestamp(a1.timestamp),
 					t2 = client.getUnixTimestamp(a2.timestamp);
 			var diff = appSpec.intToTime(t1 - t2);
+			var loc = appSpec.getLocation();
 			
 			ballHtml = appSpec.getActivityText(a2) + "<br/>" 
 										+ "<b>" + appSpec.getActivityText(a1) + "</b><br/>"
@@ -285,12 +296,12 @@
 		return JSON.parse(stmtStr);
 	}
 	
-	function trackingActivity(o) {
+	function trackingActivity(o, d) {
 		var idBuf = o.id.split("_");
 		return {
 			verb: makeVerb(idBuf[0]),
 			object: makeObject(idBuf),
-			context: makeContextExt(idBuf[0])
+			context: makeContextExt(idBuf[0], d)
 		}
 	}
 	
@@ -328,32 +339,37 @@
 		}
 	}
 	
-	function getGeolocation() {
+	function getGeolocation(callback) {
+		
 		var r = {
 			longitude: null,
 			latitude: null,
 			accuracy: null,
 			status: 0
 		};
+		
 		// geolocation
 		if (navigator.geolocation) {
 			console.log("geolocation is supported");
-			navigator.geolocation.getCurrentPosition(successFunc, errorFunc);
+			navigator.geolocation.getCurrentPosition(onSuccess, onError);
 		} else {
 			console.log("geolocation is NOT supported");
+			onNotSupported();
 		}
-		return r;
-		// local functions
-		function successFunc(pos) {
-			console.log(pos);
-			r = {
+		
+		function onSuccess(pos) {
+			var res = {
 				longitude: pos.coords.longitude,
 				latitude: pos.coords.latitude,
 				accuracy: pos.coords.accuracy,
 				status: "success"
 			};
+			appSpec.setLocation(res);
+			if (typeof callback === "function")
+				callback(res);
 		}
-		function errorFunc(err) {
+		
+		function onError(err) {
 			console.log(err);
 			var errorMessage = {
 				0: "原因不明のエラーが発生しました。",
@@ -361,28 +377,42 @@
 				2: "位置情報が取得できませんでした。" ,
 				3: "タイムアウトしました。"
 			};
-			r = {
+			var res = {
 				status: "fail",
 				message: errorMessage[err.code]
 			};
+			appSpec.setLocation(res);
+			if (typeof callback === "function")
+				callback(res);
+		}
+		
+		function onNotSupported() {
+			if (typeof callback === "function")
+				callback(r);
 		}
 	}
 	
-	function makeContextExt(word) {
+	function setMyLoc(d) {
+		myLoc = d;
+	}
+	
+	function makeContextExt(word, d) {
+		return setExtensions(d, word);
+	}
+	
+	function setExtensions(d, word) {
+		
 		var key = conf.my_scheme + "ext/practice",
 				ev = {};
-		/*
+		
 		var keyLongitude = conf.my_scheme + "ext/longitude",
 				keyLatitude = conf.my_scheme + "ext/latitude",
 				keyAccuracy = conf.my_scheme + "ext/accuracy";
-				
-		myLoc = getGeolocation();
-		console.log(myLoc);
 		
-		ev[keyLongitude] = myLoc.longitude;
-		ev[keyLatitude] = myLoc.latitude;
-		ev[keyAccuracy] = myLoc.accuracy;
-		*/
+		ev[keyLongitude] = d.longitude;
+		ev[keyLatitude] = d.latitude;
+		ev[keyAccuracy] = d.accuracy;
+		
 		switch(word) {
 			case "arrived-at":
 				ev[key] = "に";
@@ -411,6 +441,7 @@
 			default:
 				return;
 		}
+		
 	}
 	
 	function makeVerb(word) {
@@ -507,9 +538,7 @@
 					});
 				}
 			}
-		} 
-		else {
-			client.refreshAccessToken();
+		} else {
 			initButton();
 		}
 		// initialize screen
