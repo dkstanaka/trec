@@ -1,0 +1,11 @@
+# DirectoryIndex index.php
+Options FollowSymLinks
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.php -f
+RewriteRule ^(.*)$ $1.php
+# The requested URL /home/syn/public_html/lrs/Self_Grading.php was not found on this server.
+RewriteBase /taskapp/trec/
+# Authorization Header
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

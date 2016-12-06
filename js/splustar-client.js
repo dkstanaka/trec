@@ -184,6 +184,7 @@ Client.prototype.sendStatement = function (stmtObj, callback) {
 	request.fail(function(jqXHR, textStatus, e){
 		this.responseHandler(jqXHR, textStatus);
 	});
+	
 }
 
 Client.prototype.responseHandler = function(xhr, status) {

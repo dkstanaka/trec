@@ -98,22 +98,23 @@
 				
 				getGeolocation(function(d){
 				
-					var tcParts = trackingActivity(t, d);
-					var stmt = makeTCSObject(tcParts);
-					/*
-					appSpec.getLocationName(appSpec.getLocation(), function(d){
-						console.log(d);
-					});
-					*/
-					startSpinner();
-					client.sendStatement(stmt, function(){
-						stopSpinner();
-						var params = appSpec.makeParamsForLogs(stmt);
-						appSpec.logs.unshift(params);
-						dumpLogs("#option-menu");
+					appSpec.reverseGeocoding(appSpec.getLocation(), function(g){
+					
+						d['address'] = g;
 						
-						buttonBlueAll();
-						buttonGreen(t);
+						var tcParts = trackingActivity(t, d);
+						var stmt = makeTCSObject(tcParts);
+						
+						startSpinner();
+						client.sendStatement(stmt, function(){
+							stopSpinner();
+							var params = appSpec.makeParamsForLogs(stmt);
+							appSpec.logs.unshift(params);
+							dumpLogs("#option-menu");
+							
+							buttonBlueAll();
+							buttonGreen(t);
+						});
 					});
 				});
 			}
@@ -192,7 +193,6 @@
 			var t1 = client.getUnixTimestamp(a1.timestamp),
 					t2 = client.getUnixTimestamp(a2.timestamp);
 			var diff = appSpec.intToTime(t1 - t2);
-			var loc = appSpec.getLocation();
 			
 			ballHtml = appSpec.getActivityText(a2) + "<br/>" 
 										+ "<b>" + appSpec.getActivityText(a1) + "</b><br/>"
@@ -236,6 +236,9 @@
 		$(sel).html('<div id="hist-header clear">履歴</div>');
 		for (var i = 0; i < logLen; i++) {
 			var itemHtml = '<div class="hist-item clear">' + appSpec.appendLog(appSpec.logs[i]);
+			if (appSpec.logs[i].address !== undefined) {
+				itemHtml = itemHtml + "<br/>" + appSpec.logs[i].address;
+			}
 			if (i < logLen-1) {
 				var diffTime = appSpec.logs[i].unixtime - appSpec.logs[i+1].unixtime;
 				itemHtml = itemHtml + "<br/>経過時間&nbsp;" + appSpec.intToTime(diffTime);
@@ -401,18 +404,19 @@
 	}
 	
 	function setExtensions(d, word) {
-		
 		var key = conf.my_scheme + "ext/practice",
 				ev = {};
 		
 		var keyLongitude = conf.my_scheme + "ext/longitude",
 				keyLatitude = conf.my_scheme + "ext/latitude",
-				keyAccuracy = conf.my_scheme + "ext/accuracy";
+				keyAccuracy = conf.my_scheme + "ext/accuracy",
+				keyAddress = conf.my_scheme + "ext/address";
 		
 		ev[keyLongitude] = d.longitude;
 		ev[keyLatitude] = d.latitude;
 		ev[keyAccuracy] = d.accuracy;
-		
+		ev[keyAddress] = d.address;
+	
 		switch(word) {
 			case "arrived-at":
 				ev[key] = "に";

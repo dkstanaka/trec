@@ -7,32 +7,61 @@ function AppSpec() {
 	this.logs = new Array();
 	this.allLogs = new Array();
 	this.location = {};
+	this.locationName = null;
 };
 
-AppSpec.prototype.getLocationName = function (locObj, callback) {
-	var url = "https://maps.googleapis.com/maps/api/geocode/json",
-			apiKey = "AIzaSyASD638tVSbGy33U9gYdCSiac5kB_Lnl3o",
+AppSpec.prototype.setLocationName = function(ln) {
+	this.locationName = ln;
+}
+
+AppSpec.prototype.getLocationName = function() {
+	return this.locationName;
+}
+
+AppSpec.prototype.reverseGeocoding = function (locObj, callback) {
+	var url = "gm",
 			lat = locObj.latitude,
 			lon = locObj.longitude;
 	
-	var apiCall = url + "?latlng=" + lat + "," + lon + "&language=ja&key=" + apiKey;
+	var apiCall = url + "?latlng=" + lat + "," + lon + "&language=ja&result_type=locality";
 	
 	var request = $.ajax({
 		type: "get",
+		cache: false,
 		url: apiCall,
 		contentType: "application/json",
 	});
 	
 	request.done(function(d, textStatus, jqXHR){
 		console.log("status: " + textStatus);
+		
+		var fa;
+		
+		if (typeof d.result !== undefined && d.results instanceof Array) {
+			fa = d.results[0].formatted_address;
+			AppSpec.prototype.setLocationName(fa);
+		}
+		else {
+			fa = null;
+		}
+		
 		if (typeof callback === 'function')
-			callback(d);
+			callback(fa);
 	});
 	
 	request.fail(function(jqXHR, textStatus, e){
 		acquiredStmt = null;
-		this.responseHandler(jqXHR, textStatus);
+		AppSpec.prototype.responseHandler(jqXHR, textStatus);
 	});
+}
+
+AppSpec.prototype.responseHandler = function(xhr, status) {
+	console.log("error: " + status);
+	if (typeof xhr.responseText === "object") {
+		var rt = $.parseJSON(xhr.responseText);
+		console.log(xhr);
+	}
+	// codeに応じた処理を呼び出す予定
 }
 
 AppSpec.prototype.setLocation = function (locObj, callback) {
@@ -80,6 +109,7 @@ AppSpec.prototype.makeParamsForLogs = function(s) {
 	if (s.context.extensions !== undefined) {
 		var params = {
 			timestamp: s.timestamp,
+			address: s.context.extensions['http://my.splustar.com/xapi/ext/address'],
 			practice: s.context.extensions['http://my.splustar.com/xapi/ext/practice'],
 			objectName: s.object.definition.name['ja-JP'],
 			objectNameEn: s.object.definition.name['en-US'],
