@@ -109,8 +109,8 @@ AppSpec.prototype.makeParamsForLogs = function(s) {
 	if (s.context.extensions !== undefined) {
 		var params = {
 			timestamp: s.timestamp,
-			address: s.context.extensions['http://my.splustar.com/xapi/ext/address'],
-			practice: s.context.extensions['http://my.splustar.com/xapi/ext/practice'],
+			address: s.context.extensions[conf.my_scheme + 'ext/address'],
+			practice: s.context.extensions[conf.my_scheme + 'ext/practice'],
 			objectName: s.object.definition.name['ja-JP'],
 			objectNameEn: s.object.definition.name['en-US'],
 			verbDisp: s.verb.display['ja-JP'],
