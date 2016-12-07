@@ -79,13 +79,17 @@
 	// config
 	var conf = trecConfLib.getConf();
 	
-	var ssto = $.sessionStorage,
-			lsto = $.localStorage,
-			myLoc = {},
+	var myLoc = {},
 			acquiredStmt;
 	// deine global object
 	var client = new Client(conf);
 	var appSpec = new AppSpec();
+	
+	var ATKEY = conf.access_token_key;
+	var RTKEY = conf.refresh_token_key;
+	// client settings
+	client.setAccessTokenKey(ATKEY);
+	client.setRefreshTokenKey(RTKEY);
 	/*
 	 * event handler
 	 *
@@ -528,7 +532,7 @@
 	
 	$(document).ready(function(){
 		// oauth
-		if (ssto.get("trecaccess") == undefined || ssto.get("trecaccess").length <= 1) {
+		if (client.getSession(ATKEY) == undefined || client.getSession(ATKEY).length <= 1) {
 			if (!conf.offline) {
 				buf = client.checkCode();
 				if (buf.code == undefined) {
@@ -542,7 +546,11 @@
 					});
 				}
 			}
-		} else {
+		}
+		else {
+			if (client.getSession(RTKEY) !== undefined) {
+				client.refreshAccessToken();
+			} 
 			initButton();
 		}
 		// initialize screen

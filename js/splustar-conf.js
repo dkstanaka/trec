@@ -10,6 +10,8 @@ var trecConfLib = (function(){
 		stmt_endpoint: "https://api.mananda.jp/lrs_1/xAPI/statements",
 		actIdPrefix: "activity_id_prefix_for_your_client",
 		my_scheme: "xapi_scheme_prefix_for_your_client",
+		access_token_key: "key_of_your_access_token",
+		refresh_token_key: "key_of_your_refresh_token",
 		offline: false
 	}
 	
