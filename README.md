@@ -35,6 +35,20 @@ OpenWeatherMap
  * $apiKey: Google API Key
 7. owm.php の編集  
  * $apiKey: OpenWeatherMap API Key
+8. .htaccess の作成  
+ * 以下の内容をコピペ  
+```.htaccess
+Options FollowSymLinks
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.php -f
+RewriteRule ^(.*)$ $1.php
+RewriteBase /taskapp/trec-owm/
+# Authorization Header
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+```
+
 #### デモ
 https://splustar.com/taskapp/trec-owm
 
