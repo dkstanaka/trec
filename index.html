@@ -77,35 +77,55 @@
 	</div>
 	<script type="text/javascript">
 	// config
-	var conf = trecConfLib.getConf();
-	
+	var conf = confLib.getConf();
+	/*
 	var ssto = $.sessionStorage,
 			lsto = $.localStorage,
 			myLoc = {},
-			acquiredStmt;
+	*/
+	var acquiredStmt;
 	// deine global object
+	var ATKEY = conf.access_token_key;
+	var RTKEY = conf.refresh_token_key;
+			
 	var client = new Client(conf);
 	var appSpec = new AppSpec();
+	// client settings
+	client.setAccessTokenKey(ATKEY);
+	client.setRefreshTokenKey(RTKEY);
 	/*
 	 * event handler
 	 *
 	 */
 	function onButtonClick(t) {
-		var tcParts = trackingActivity(t);
-		var stmt = makeTCSObject(tcParts);
 		var bcol = $(t).css('background-color');
 		
 		if (appSpec.rgb2hex(bcol) == "#49a9d4") {
 			if (!conf.offline) {
-				startSpinner();
-				client.sendStatement(stmt, function(){
-					stopSpinner();
-					var params = appSpec.makeParamsForLogs(stmt);
-					appSpec.logs.unshift(params);
-					dumpLogs("#option-menu");
-					
-					buttonBlueAll();
-					buttonGreen(t);
+				
+				getGeolocation(function(d){
+					appSpec.getCurrentWeather(appSpec.getLocation(), function(w){
+						appSpec.setWeather(w);
+						appSpec.reverseGeocoding(appSpec.getLocation(), function(g){
+						
+							d['address'] = g;
+							d['weather'] = appSpec.getWeather();
+							
+							var tcParts = trackingActivity(t, d);
+							var stmt = makeTCSObject(tcParts);
+							
+							startSpinner();
+							client.sendStatement(stmt, function(){
+								stopSpinner();
+								var params = appSpec.makeParamsForLogs(stmt);
+								appSpec.logs.unshift(params);
+								dumpLogs("#option-menu");
+								
+								buttonBlueAll();
+								buttonGreen(t);
+							});
+						});
+					});
 				});
 			}
 		} else {
@@ -125,8 +145,9 @@
 	function yesNoEvent(obj) {
 		var yn = $(obj).val();
 		$("#modal").fadeOut("first", function(){
-			if (yn == "Yes")
-				buttonBlueAll();
+			if (yn == "Yes") {
+				// buttonBlueAll();
+			}
 			else if (yn == "No") {
 				// do something you need
 			}
@@ -225,6 +246,12 @@
 		$(sel).html('<div id="hist-header clear">履歴</div>');
 		for (var i = 0; i < logLen; i++) {
 			var itemHtml = '<div class="hist-item clear">' + appSpec.appendLog(appSpec.logs[i]);
+			if (appSpec.logs[i].address !== undefined) {
+				itemHtml = itemHtml + "<br/>" + appSpec.logs[i].address;
+			}
+			if (appSpec.logs[i].temp !== undefined) {
+				itemHtml = itemHtml + "<br/>気温:" + appSpec.logs[i].temp + "&nbsp;湿度:" + appSpec.logs[i].humidity + "&nbsp;風速:" + appSpec.logs[i].windSpeed + "&nbsp;雲量:" + appSpec.logs[i].clouds;
+			}
 			if (i < logLen-1) {
 				var diffTime = appSpec.logs[i].unixtime - appSpec.logs[i+1].unixtime;
 				itemHtml = itemHtml + "<br/>経過時間&nbsp;" + appSpec.intToTime(diffTime);
@@ -285,12 +312,12 @@
 		return JSON.parse(stmtStr);
 	}
 	
-	function trackingActivity(o) {
+	function trackingActivity(o, d) {
 		var idBuf = o.id.split("_");
 		return {
 			verb: makeVerb(idBuf[0]),
 			object: makeObject(idBuf),
-			context: makeContextExt(idBuf[0])
+			context: makeContextExt(idBuf[0], d)
 		}
 	}
 	
@@ -328,32 +355,37 @@
 		}
 	}
 	
-	function getGeolocation() {
+	function getGeolocation(callback) {
+		
 		var r = {
 			longitude: null,
 			latitude: null,
 			accuracy: null,
 			status: 0
 		};
+		
 		// geolocation
 		if (navigator.geolocation) {
 			console.log("geolocation is supported");
-			navigator.geolocation.getCurrentPosition(successFunc, errorFunc);
+			navigator.geolocation.getCurrentPosition(onSuccess, onError);
 		} else {
 			console.log("geolocation is NOT supported");
+			onNotSupported();
 		}
-		return r;
-		// local functions
-		function successFunc(pos) {
-			console.log(pos);
-			r = {
+		
+		function onSuccess(pos) {
+			var res = {
 				longitude: pos.coords.longitude,
 				latitude: pos.coords.latitude,
 				accuracy: pos.coords.accuracy,
 				status: "success"
 			};
+			appSpec.setLocation(res);
+			if (typeof callback === "function")
+				callback(res);
 		}
-		function errorFunc(err) {
+		
+		function onError(err) {
 			console.log(err);
 			var errorMessage = {
 				0: "原因不明のエラーが発生しました。",
@@ -361,28 +393,69 @@
 				2: "位置情報が取得できませんでした。" ,
 				3: "タイムアウトしました。"
 			};
-			r = {
+			var res = {
 				status: "fail",
 				message: errorMessage[err.code]
 			};
+			appSpec.setLocation(res);
+			if (typeof callback === "function")
+				callback(res);
+		}
+		
+		function onNotSupported() {
+			if (typeof callback === "function")
+				callback(r);
 		}
 	}
 	
-	function makeContextExt(word) {
+	function setMyLoc(d) {
+		myLoc = d;
+	}
+	
+	function makeContextExt(word, d) {
+		return setExtensions(d, word);
+	}
+	
+	function setExtensions(d, word) {
 		var key = conf.my_scheme + "ext/practice",
 				ev = {};
-		/*
+		
 		var keyLongitude = conf.my_scheme + "ext/longitude",
 				keyLatitude = conf.my_scheme + "ext/latitude",
-				keyAccuracy = conf.my_scheme + "ext/accuracy";
-				
-		myLoc = getGeolocation();
-		console.log(myLoc);
+				keyAccuracy = conf.my_scheme + "ext/accuracy",
+				keyAddress = conf.my_scheme + "ext/address";
 		
-		ev[keyLongitude] = myLoc.longitude;
-		ev[keyLatitude] = myLoc.latitude;
-		ev[keyAccuracy] = myLoc.accuracy;
-		*/
+		ev[keyLongitude] = d.longitude;
+		ev[keyLatitude] = d.latitude;
+		ev[keyAccuracy] = d.accuracy;
+		ev[keyAddress] = d.address;
+		
+		//console.log(d);
+		var prefixWeather = conf.my_scheme + "ext/weather/";
+		var keyWTClouds = prefixWeather + "clouds/all",
+				keyWTHumidity = prefixWeather + "humidity",
+				keyWTPressure = prefixWeather + "pressure",
+				keyWTSysId = prefixWeather + "sys/id",
+				keyWTSysSunrise = prefixWeather + "sys/sunrise",
+				keyWTSysSunset = prefixWeather + "sys/sunset",
+				keyWTTemp = prefixWeather + "temp",
+				keyWTTempMax = prefixWeather + "temp_max",
+				keyWTTempMin = prefixWeather + "temp_min",
+				keyWTWindDeg = prefixWeather + "wind/deg",
+				keyWTWindSpeed = prefixWeather + "wind/speed";
+		
+		ev[keyWTClouds] = d.weather.clouds.all;
+		ev[keyWTHumidity] = d.weather.humidity;
+		ev[keyWTPressure] = d.weather.pressure;
+		ev[keyWTSysId] = d.weather.sys.id;
+		ev[keyWTSysSunrise] = d.weather.sys.sunrise;
+		ev[keyWTSysSunset] = d.weather.sys.sunset;
+		ev[keyWTTemp] = d.weather.temp;
+		ev[keyWTTempMax] = d.weather.temp_max;
+		ev[keyWTTempMin] = d.weather.temp_min;
+		ev[keyWTWindDeg] = d.weather.wind.deg;
+		ev[keyWTWindSpeed] = d.weather.wind.speed;
+		
 		switch(word) {
 			case "arrived-at":
 				ev[key] = "に";
@@ -411,13 +484,14 @@
 			default:
 				return;
 		}
+		
 	}
 	
 	function makeVerb(word) {
 		switch(word) {
 			case "arrived-at":
 				return {
-					id: "http://splustar.com/xapi/verb/arrived-at",
+					id: conf.my_scheme + "verb/arrived-at",
 					display: {
 						"en-US": "arrived at",
 						"ja-JP": "到着した"
@@ -426,7 +500,7 @@
 				break;
 			case "left":
 				return {
-					id: "http://splustar.com/xapi/verb/left",
+					id: conf.my_scheme + "verb/left",
 					display: {
 						"en-US": "left",
 						"ja-JP": "出発した"
@@ -435,7 +509,7 @@
 				break;
 			case "began":
 				return {
-					id: "http://splustar.com/xapi/verb/began",
+					id: conf.my_scheme + "verb/began",
 					display: {
 						"en-US": "began",
 						"ja-JP": "開始した"
@@ -444,7 +518,7 @@
 				break;
 			case "ended":
 				return {
-					id: "http://splustar.com/xapi/verb/ended",
+					id: conf.my_scheme + "verb/ended",
 					display: {
 						"en-US": "ended",
 						"ja-JP": "終了した"
@@ -493,7 +567,7 @@
 	
 	$(document).ready(function(){
 		// oauth
-		if (ssto.get("trecaccess") == undefined || ssto.get("trecaccess").length <= 1) {
+		if (client.getSession(ATKEY) == undefined || client.getSession(ATKEY).length <= 1) {
 			if (!conf.offline) {
 				buf = client.checkCode();
 				if (buf.code == undefined) {
@@ -507,11 +581,13 @@
 					});
 				}
 			}
-		} 
-		else {
+		} else if (client.getSession(RTKEY) !== undefined) {
 			client.refreshAccessToken();
 			initButton();
+		//} else {
+		//	initButton();
 		}
+		
 		// initialize screen
 		function initButton() {
 			if (!conf.offline) {

@@ -12,8 +12,35 @@ function Client(cfg) {
 	this.redirect_uri = cfg.redirect_uri;
 	this.scope = cfg.scope;
 	this.state = sha256(ivStr);
-	
+	this.access_token_key = null;
+	this.refresh_token_key = null;
 };
+
+Client.prototype.setSession = function(k, v) {
+	var sess = $.sessionStorage;
+	sess.set(k, v);
+}
+
+Client.prototype.getSession = function(k) {
+	var sess = $.sessionStorage;
+	return sess.get(k);
+}
+
+Client.prototype.setAccessTokenKey = function(k) {
+	this.access_token_key = k;
+}
+
+Client.prototype.setRefreshTokenKey = function(k) {
+	this.refresh_token_key = k;
+}
+
+Client.prototype.getAccessTokenKey = function(k) {
+	return this.access_token_key;
+}
+
+Client.prototype.getRefreshTokenKey = function(k) {
+	return this.refresh_token_key;
+}
 
 Client.prototype.setAccessToken = function (t) {
 	this.access_token = t;
@@ -70,12 +97,15 @@ Client.prototype.requestToken = function(callback) {
 		data: d
 	});
 	
+	var ak = this.access_token_key,
+			rk = this.refresh_token_key;
+			
 	request.done(function(json, status, jqXHR){
 		this.access_token = json.access_token;
 		this.refresh_token = json.refresh_token;
 		
-		ssto.set("trecaccess", json.access_token);
-		ssto.set("trecrefresh", json.refresh_token); // ※refresh は localstorage を使うのが理想
+		Client.prototype.setSession(ak, json.access_token);
+		Client.prototype.setSession(rk, json.refresh_token);
 		
 		if (typeof callback === 'function')
 			callback();
@@ -92,7 +122,7 @@ Client.prototype.refreshAccessToken = function() {
 		client_id: this.client_id,
 		client_secret: this.client_secret,
 		grant_type: "refresh_token",
-		refresh_token: ssto.get("trecrefresh")
+		refresh_token: this.getSession(this.refresh_token_key)
 	};
 	
 	var request = $.ajax({
@@ -102,9 +132,11 @@ Client.prototype.refreshAccessToken = function() {
 		data: d
 	});
 	
+	var ak = this.access_token_key;
+	
 	request.done(function(json, status, jqXHR){
 		this.access_token = json.access_token;
-		ssto.set("trecaccess", json.access_token);
+		Client.prototype.setSession(ak, json.access_token);
 	});
 	
 	request.fail(function(jqXHR, status, e){
@@ -114,8 +146,8 @@ Client.prototype.refreshAccessToken = function() {
 }
 
 Client.prototype.getStatements = function (actId, opt, callback) {
-	if (!ssto.get("trecaccess")) {
-		console.log("empty access token!");
+	if (!this.getSession(this.access_token_key)) {
+		console.log("empty access token!" + this.access_token_key);
 		this.startOAuth(); // アクセストークンがなければ認可要求
 		// 認可要求前に getStatements 中であることを localStorage に記録予定
 	}
@@ -134,12 +166,13 @@ Client.prototype.getStatements = function (actId, opt, callback) {
 		}
 	});
 	
+	var ak = this.access_token_key;
 	var request = $.ajax({
 		type: "get",
 		url: prodUrl,
 		contentType: "application/json",
 		beforeSend: function(xhr) {
-			var bearer = ssto.get("trecaccess");
+			var bearer = Client.prototype.getSession(ak);
 			xhr.setRequestHeader("Authorization", "Bearer " + bearer);
 		}
 	});
@@ -152,7 +185,7 @@ Client.prototype.getStatements = function (actId, opt, callback) {
 	
 	request.fail(function(jqXHR, textStatus, e){
 		acquiredStmt = null;
-		this.responseHandler(jqXHR, textStatus);
+		Client.prototype.responseHandler(jqXHR, textStatus);
 	});
 }
 
@@ -164,6 +197,7 @@ Client.prototype.sendStatement = function (stmtObj, callback) {
 		}
 	});
 	
+	var ak = this.access_token_key;
 	var request = $.ajax({
 		type: "put",
 		url: conf.stmt_endpoint + "?statementId=" + stmtObj.id,
@@ -171,7 +205,7 @@ Client.prototype.sendStatement = function (stmtObj, callback) {
 		cache: false,
 		data: JSON.stringify(stmtObj),
 		beforeSend: function(xhr) {
-			var bearer = ssto.get("trecaccess");
+			var bearer = Client.prototype.getSession(ak);
 			xhr.setRequestHeader("Authorization", "Bearer " + bearer);
 		}
 	});
@@ -182,14 +216,13 @@ Client.prototype.sendStatement = function (stmtObj, callback) {
 	});
 	
 	request.fail(function(jqXHR, textStatus, e){
-		this.responseHandler(jqXHR, textStatus);
+		Client.prototype.responseHandler(jqXHR, textStatus);
 	});
 }
 
 Client.prototype.responseHandler = function(xhr, status) {
 	console.log("error: " + status);
 	var rt = $.parseJSON(xhr.responseText);
-	// codeに応じた処理を呼び出す予定
 	console.log(rt);
 }
 

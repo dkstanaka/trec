@@ -1,4 +1,4 @@
-# tRec
+# tRec-owm
 Mananda のサンプルとして作った簡単な打刻アプリケーション
 
 #### 使い方
@@ -25,7 +25,7 @@ Mananda のサンプルとして作った簡単な打刻アプリケーション
  例 "http://example.jp/xapi/"  
 
 #### デモ
-http://splustar.com/~ubuntu/taskapp/trec
+https://splustar.com/taskapp/trec-owm
 
 ---
 #### 注記
